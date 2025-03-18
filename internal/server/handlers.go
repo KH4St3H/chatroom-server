@@ -18,7 +18,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	}
 	s.Logger.Debugw("first packet received", "packet", string(packet))
 	if bytes.HasPrefix(packet, []byte(constants.REGISTRATION_MSG)) {
-		err := handlers.HandleRegistration(packet, s.DBManager, s.Logger)
+		err := handlers.HandleRegistration(s.Context, packet)
 		if err != nil {
 			_, err := conn.Write([]byte(err.Error()))
 			if err != nil {
@@ -36,8 +36,8 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	return
 }
 
-func (s *Server) HandleNewConnections() {
-	for conn := range s.Connections {
+func (s *Server) HandleNewConnections(connections chan *net.Conn) {
+	for conn := range connections {
 		s.Logger.Infow("Incoming connection", "connection", conn)
 		go s.HandleConnection(*conn)
 	}
