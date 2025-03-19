@@ -1,1 +1,0 @@
-DATABASE_DSN: "postgresql://postgres:asdfasdf@localhost:5332/bank"
