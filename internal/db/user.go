@@ -6,9 +6,11 @@ import (
 )
 
 type User struct {
-	Username string `json:"username" gorm:"unique"`
-	Password string `json:"password"`
-	Admin    bool   `json:"admin"`
+	ID         uint   `gorm:"primaryKey" json:"id"`
+	Username   string `json:"username" gorm:"unique"`
+	Password   string `json:"password"`
+	SessionKey string `json:"session_key"`
+	Admin      bool   `json:"admin"`
 }
 
 func (m *Manager) CheckUserExists(username string) bool {
@@ -25,4 +27,15 @@ func (m *Manager) CreateUser(username string, password string) error {
 	}
 	result := m.Create(&user)
 	return result.Error
+}
+
+func (m *Manager) GetUserByUsername(username string) (*User, error) {
+	var user User
+	result := m.Take(&user, "username = ?", username)
+	return &user, result.Error
+}
+
+func (m *Manager) SaveUser(user *User) error {
+	return m.Save(user).Error
+
 }

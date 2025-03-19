@@ -9,12 +9,22 @@ type Manager struct {
 	*gorm.DB
 }
 
+var manager *Manager
+
+func GetManager() *Manager {
+	return manager
+}
+
 func NewManager(dsn string) (*Manager, error) {
+	if manager != nil {
+		return manager, nil
+	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-	return &Manager{db}, nil
+	manager = &Manager{db}
+	return manager, nil
 }
 
 func (m *Manager) Migrate() error {

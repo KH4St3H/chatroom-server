@@ -2,15 +2,13 @@ package main
 
 import (
 	"github.com/kh4st3h/chatroom-server/internal/config"
-	"github.com/kh4st3h/chatroom-server/internal/context"
-	db2 "github.com/kh4st3h/chatroom-server/internal/db"
+	"github.com/kh4st3h/chatroom-server/internal/db"
+	"github.com/kh4st3h/chatroom-server/internal/log"
 	"github.com/kh4st3h/chatroom-server/internal/server"
-	"go.uber.org/zap"
 )
 
 func main() {
-	logger, _ := zap.NewDevelopment()
-	defer logger.Sync()
+	logger := log.NewLogger()
 	sugar := logger.Sugar()
 	sugar.Info("Loading config")
 	cfg, err := config.NewConfig()
@@ -18,7 +16,7 @@ func main() {
 		sugar.Fatal(err)
 	}
 	sugar.Info("Connecting to database")
-	dbManager, err := db2.NewManager(cfg.DatabaseDSN)
+	dbManager, err := db.NewManager(cfg.DatabaseDSN)
 	if err != nil {
 		sugar.Fatal(err)
 	}
@@ -31,8 +29,7 @@ func main() {
 		return
 	}
 
-	ctx := &context.Context{Logger: sugar, DBManager: dbManager, Config: cfg}
-	srv := server.NewServer(ctx)
+	srv := server.NewServer(cfg)
 	err = srv.Run()
 	if err != nil {
 		sugar.Fatal(err)

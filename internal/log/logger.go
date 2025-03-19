@@ -1,10 +1,18 @@
 package log
 
-import "log"
+import (
+	"go.uber.org/zap"
+)
 
 type Logger struct {
-	Logger log.Logger
+	zap.Logger
 }
 
-func (l *Logger) Info(str string, args ...interface{}) {
+var logger *zap.Logger
+
+func NewLogger() *Logger {
+	if logger == nil {
+		logger, _ = zap.NewDevelopment()
+	}
+	return &Logger{*logger}
 }
