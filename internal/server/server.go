@@ -38,6 +38,11 @@ func (s *Server) Run() error {
 		if err != nil {
 			logger.Errorf("Error accepting incoming connection: %v", err)
 		}
+		err = conn.SetDeadline(s.Cfg.ConnectionTimeout)
+		if err != nil {
+			logger.Errorf("Error setting deadline: %v", err)
+			return err
+		}
 		connections <- &conn
 	}
 }

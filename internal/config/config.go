@@ -11,7 +11,7 @@ type Config struct {
 	ListenPort            int
 	DatabaseDSN           string
 	ConnectionWorkerCount int
-	ConnectionTimeout     time.Duration
+	ConnectionTimeout     time.Time
 	Debug                 bool
 }
 
@@ -42,6 +42,6 @@ func NewConfig() (*Config, error) {
 		ListenPort:        viper.GetInt("LISTEN_PORT"),
 		DatabaseDSN:       viper.GetString("DATABASE_DSN"),
 		Debug:             viper.GetBool("DEBUG"),
-		ConnectionTimeout: viper.GetDuration("CONNECTION_TIMEOUT"),
+		ConnectionTimeout: viper.GetTime("CONNECTION_TIMEOUT"),
 	}, nil
 }

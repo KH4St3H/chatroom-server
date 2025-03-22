@@ -3,14 +3,12 @@ package server
 import (
 	"bytes"
 	"context"
-	"errors"
 	"github.com/kh4st3h/chatroom-server/internal/constants"
 	"github.com/kh4st3h/chatroom-server/internal/log"
 	"github.com/kh4st3h/chatroom-server/internal/server/handler"
 	"github.com/kh4st3h/chatroom-server/internal/server/types/connection"
 	"go.uber.org/zap"
 	"net"
-	"time"
 )
 
 var logger *zap.SugaredLogger
@@ -51,19 +49,6 @@ func (s *Server) HandleConnection(ctx context.Context, conn net.Conn) {
 func (s *Server) HandleNewConnections(ctx context.Context, connections chan *net.Conn) {
 	for conn := range connections {
 		logger.Infow("Incoming connection", "connection", conn)
-		ctx, cancel := context.WithTimeout(ctx, s.Cfg.ConnectionTimeout*time.Millisecond)
-		defer cancel()
-
 		go s.HandleConnection(ctx, *conn)
-		go func() {
-			select {
-			case <-ctx.Done():
-				if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-					logger.Errorf("Timeout reached: %v", ctx.Err())
-				} else {
-					logger.Infow("Finished processing connection", "connection", conn)
-				}
-			}
-		}()
 	}
 }
