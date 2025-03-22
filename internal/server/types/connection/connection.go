@@ -1,6 +1,8 @@
 package connection
 
 import (
+	"errors"
+	"github.com/kh4st3h/chatroom-server/internal/crypto"
 	"github.com/kh4st3h/chatroom-server/internal/log"
 	"go.uber.org/zap"
 	"net"
@@ -13,7 +15,9 @@ func init() {
 }
 
 type Conn struct {
-	conn net.Conn
+	conn          net.Conn
+	username      string
+	cryptoManager crypto.Manager
 }
 
 func New(conn net.Conn) *Conn {
@@ -36,4 +40,34 @@ func (c *Conn) Read() ([]byte, error) {
 	}
 	packet = packet[:count]
 	return packet, err
+}
+
+func (c *Conn) ReadAndDecrypt() (string, error) {
+	packet, err := c.Read()
+
+	if err != nil {
+		return "", err
+	}
+	decrypted, err := c.DecryptMessage(packet)
+	if err != nil {
+		return "", errors.Join(errors.New("Failed to decrypt user data"), err)
+	}
+	return string(decrypted), nil
+}
+
+func (c *Conn) DecryptMessage(message []byte) ([]byte, error) {
+	return c.cryptoManager.Decrypt(message)
+}
+
+func (c *Conn) Authenticate(username string, sessionKey []byte) {
+	c.username = username
+	c.cryptoManager = *crypto.NewManager(crypto.AesCBC{}, crypto.Sha1HashData(sessionKey))
+}
+
+func (c *Conn) GoOffline() {
+
+}
+
+func (c *Conn) GetUsername() string {
+	return c.username
 }

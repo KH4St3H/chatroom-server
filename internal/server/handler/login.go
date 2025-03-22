@@ -22,14 +22,14 @@ func extractUsername(data []byte) (string, error) {
 
 }
 
-func HandleLogin(conn connection.Conn, ctx context.Context) bool {
+func HandleLogin(conn *connection.Conn, ctx context.Context) bool {
 	logger := log.NewLogger().Sugar()
 	data := ctx.Value("data").([]byte)
 
 	username, err := extractUsername(data)
 	if err != nil {
-		logger.Info("Failed to extract username from message")
-		_, _ = conn.Write([]byte("Failed to extract username from message"))
+		logger.Info("Failed to extract username from request")
+		_, _ = conn.Write([]byte("Failed to extract username from request"))
 		return false
 	}
 	loginRequest := user.LoginRequest{Username: username}
@@ -48,7 +48,12 @@ func HandleLogin(conn connection.Conn, ctx context.Context) bool {
 	newCtx := context.WithValue(ctx, "username", username)
 	newCtx = context.WithValue(newCtx, "sessionKey", loginResponse.SessionKey)
 
-	return VerifyLogin(conn, newCtx)
+	success := VerifyLogin(*conn, newCtx)
+	if success {
+		conn.Authenticate(username, loginResponse.SessionKey)
+		return true
+	}
+	return false
 }
 
 func VerifyLogin(conn connection.Conn, ctx context.Context) bool {

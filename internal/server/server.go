@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"github.com/kh4st3h/chatroom-server/internal/config"
 	"github.com/kh4st3h/chatroom-server/internal/log"
+	"github.com/kh4st3h/chatroom-server/internal/server/types/request"
 	"net"
 )
 
 type Server struct {
-	Cfg *config.Config
+	Cfg          *config.Config
+	UserRequests chan *request.AuthenticatedUserRequest
 }
 
 func NewServer(cfg *config.Config) *Server {
-	return &Server{cfg}
+	return &Server{cfg, make(chan *request.AuthenticatedUserRequest)}
 }
 
 func (s *Server) Run() error {
@@ -33,12 +35,12 @@ func (s *Server) Run() error {
 	connections := make(chan *net.Conn)
 	ctx := context.Background()
 	go s.HandleNewConnections(ctx, connections)
+	go s.HandleRequests()
 	for {
 		conn, err := l.Accept()
 		if err != nil {
 			logger.Errorf("Error accepting incoming connection: %v", err)
 		}
-		err = conn.SetDeadline(s.Cfg.ConnectionTimeout)
 		if err != nil {
 			logger.Errorf("Error setting deadline: %v", err)
 			return err
