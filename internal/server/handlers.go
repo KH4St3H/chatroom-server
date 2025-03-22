@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"github.com/kh4st3h/chatroom-server/internal/actions/server"
 	"github.com/kh4st3h/chatroom-server/internal/constants"
 	"github.com/kh4st3h/chatroom-server/internal/log"
 	"github.com/kh4st3h/chatroom-server/internal/server/handler"
@@ -74,14 +75,28 @@ func (s *Server) HandleNewConnections(ctx context.Context, connections chan *net
 	}
 }
 
+func (s *Server) GetUserList() []string {
+	users := make([]string, 0, len(s.Connections))
+	for user, _ := range s.Connections {
+		users = append(users, user)
+	}
+	return users
+}
+
 func (s *Server) HandleRequests() {
 	for {
 		req := <-s.UserRequests
-		if req.Message == constants.FETCH_ATTENDEES_MSG {
-			s.fetchAttendees(*s.Connections[req.Username])
+		switch req.Type {
+		case constants.FETCH_ATTENDEES_TYPE:
+			server.FetchAttendees(req.Username, s.GetUserList(), s)
+		case constants.PUBLIC_MESSAGE_TYPE:
+			err := server.SendPublicMessage(req, s)
+			if err != nil {
+				logger.Errorf("Error sending public message: %v", err)
+			}
+		default:
 			continue
+
 		}
-
 	}
-
 }

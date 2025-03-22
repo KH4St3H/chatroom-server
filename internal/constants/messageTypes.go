@@ -1,0 +1,8 @@
+package constants
+
+const (
+	UNKOWN_TYPE = iota
+	FETCH_ATTENDEES_TYPE
+	PUBLIC_MESSAGE_TYPE
+	PRIVATE_MESSAGE_TYPE
+)
