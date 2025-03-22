@@ -50,13 +50,31 @@ func (c *Conn) ReadAndDecrypt() (string, error) {
 	}
 	decrypted, err := c.DecryptMessage(packet)
 	if err != nil {
-		return "", errors.Join(errors.New("Failed to decrypt user data"), err)
+		return "", errors.Join(errors.New("failed to decrypt user data"), err)
 	}
 	return string(decrypted), nil
 }
 
+func (c *Conn) EncryptedWrite(msg []byte) error {
+	encrypedMsg, err := c.EncryptMessage(msg)
+	if err != nil {
+		return errors.Join(errors.New("failed to encrypt user data"), err)
+	}
+	_, err = c.Write(encrypedMsg)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Conn) DecryptMessage(message []byte) ([]byte, error) {
 	return c.cryptoManager.Decrypt(message)
+}
+
+func (c *Conn) EncryptMessage(message []byte) ([]byte, error) {
+	return c.cryptoManager.Encrypt(message)
 }
 
 func (c *Conn) Authenticate(username string, sessionKey []byte) {

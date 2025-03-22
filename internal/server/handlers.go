@@ -62,6 +62,7 @@ func (s *Server) HandleConnection(ctx context.Context, conn net.Conn) {
 			return
 		}
 		go s.HandleUserMessages(newConn)
+		s.Join(newConn)
 	}
 	return
 }
@@ -76,8 +77,11 @@ func (s *Server) HandleNewConnections(ctx context.Context, connections chan *net
 func (s *Server) HandleRequests() {
 	for {
 		req := <-s.UserRequests
+		switch req.Message {
+		case constants.REGISTRATION_MSG:
 
-		println(req.Message)
+		}
+
 	}
 
 }

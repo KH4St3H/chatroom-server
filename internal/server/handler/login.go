@@ -51,6 +51,7 @@ func HandleLogin(conn *connection.Conn, ctx context.Context) bool {
 	success := VerifyLogin(*conn, newCtx)
 	if success {
 		conn.Authenticate(username, loginResponse.SessionKey)
+		conn.Write([]byte(fmt.Sprintf("Hi %s, welcome to the chatroom.", conn.GetUsername())))
 		return true
 	}
 	return false
@@ -77,6 +78,5 @@ func VerifyLogin(conn connection.Conn, ctx context.Context) bool {
 		conn.Write([]byte("Failed to authorize"))
 		return false
 	}
-	conn.Write([]byte("Welcome"))
 	return true
 }

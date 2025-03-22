@@ -5,17 +5,35 @@ import (
 	"fmt"
 	"github.com/kh4st3h/chatroom-server/internal/config"
 	"github.com/kh4st3h/chatroom-server/internal/log"
+	"github.com/kh4st3h/chatroom-server/internal/server/types/connection"
 	"github.com/kh4st3h/chatroom-server/internal/server/types/request"
 	"net"
+	"time"
 )
 
 type Server struct {
 	Cfg          *config.Config
 	UserRequests chan *request.AuthenticatedUserRequest
+	Connections  map[string]*connection.Conn
 }
 
 func NewServer(cfg *config.Config) *Server {
-	return &Server{cfg, make(chan *request.AuthenticatedUserRequest)}
+	userRequests := make(chan *request.AuthenticatedUserRequest)
+	connections := make(map[string]*connection.Conn)
+	return &Server{cfg, userRequests, connections}
+}
+
+func (s *Server) Join(conn *connection.Conn) {
+	s.Connections[conn.GetUsername()] = conn
+	s.Broadcast(request.AuthenticatedUserRequest{
+		Username: conn.GetUsername(),
+		Message:  fmt.Sprintf("%s join the chat room.", conn.GetUsername()),
+		Time:     time.Now(),
+	})
+}
+
+func (s *Server) Leave(conn *connection.Conn) {
+	delete(s.Connections, conn.GetUsername())
 }
 
 func (s *Server) Run() error {
