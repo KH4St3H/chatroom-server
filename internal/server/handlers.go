@@ -77,9 +77,9 @@ func (s *Server) HandleNewConnections(ctx context.Context, connections chan *net
 func (s *Server) HandleRequests() {
 	for {
 		req := <-s.UserRequests
-		switch req.Message {
-		case constants.REGISTRATION_MSG:
-
+		if req.Message == constants.FETCH_ATTENDEES_MSG {
+			s.fetchAttendees(*s.Connections[req.Username])
+			continue
 		}
 
 	}

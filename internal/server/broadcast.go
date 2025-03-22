@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/kh4st3h/chatroom-server/internal/server/types/connection"
 	"github.com/kh4st3h/chatroom-server/internal/server/types/request"
 )
 
@@ -9,12 +10,15 @@ func (s *Server) Broadcast(u request.AuthenticatedUserRequest) {
 		if username == u.Username {
 			continue
 		}
+		s.BroadcastTo(conn, u.Message)
+	}
+}
 
-		err := conn.EncryptedWrite([]byte(u.Message))
-		if err != nil {
-			logger.Error("failed to send data to user")
-			conn.GoOffline()
-			s.Leave(conn)
-		}
+func (s *Server) BroadcastTo(conn *connection.Conn, msg string) {
+	err := conn.EncryptedWrite([]byte(msg))
+	if err != nil {
+		logger.Error("failed to send data to user")
+		conn.GoOffline()
+		s.Leave(conn)
 	}
 }
