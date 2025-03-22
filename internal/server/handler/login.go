@@ -3,13 +3,11 @@ package handler
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"errors"
-	"github.com/kh4st3h/chatroom-server/internal/crypto"
-	"github.com/kh4st3h/chatroom-server/internal/db"
+	"fmt"
+	"github.com/kh4st3h/chatroom-server/internal/actions/user"
 	"github.com/kh4st3h/chatroom-server/internal/log"
-	"gorm.io/gorm"
-	"io"
+	"github.com/kh4st3h/chatroom-server/internal/server/types"
 	"regexp"
 )
 
@@ -24,52 +22,56 @@ func extractUsername(data []byte) (string, error) {
 
 }
 
-func HandleLogin(responseWriter io.Writer, ctx context.Context) bool {
+func HandleLogin(conn types.Conn, ctx context.Context) bool {
 	logger := log.NewLogger().Sugar()
-	dbManager := db.GetManager()
 	data := ctx.Value("data").([]byte)
 
 	username, err := extractUsername(data)
 	if err != nil {
 		logger.Info("Failed to extract username from message")
-		_, _ = responseWriter.Write([]byte("Failed to extract username from message"))
+		_, _ = conn.Write([]byte("Failed to extract username from message"))
 		return false
 	}
-	user, err := dbManager.GetUserByUsername(username)
+	loginRequest := user.LoginRequest{Username: username}
+	loginResponse, err := user.Login(loginRequest)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logger.Info("User not found")
-			_, _ = responseWriter.Write([]byte("User not found"))
+		_, err := conn.Write([]byte(err.Error()))
+		if err != nil {
+			return false
 		}
+	}
+	_, err = conn.Write([]byte(fmt.Sprintf("Key %s", loginResponse.SessionVerifyToken)))
+	if err != nil {
+		logger.Error("Failed to write session token")
 		return false
 	}
-	randomKey, err := crypto.GenerateRandomAESKey()
+	newCtx := context.WithValue(ctx, "username", username)
+	newCtx = context.WithValue(newCtx, "sessionKey", loginResponse.SessionKey)
+
+	return VerifyLogin(conn, newCtx)
+}
+
+func VerifyLogin(conn types.Conn, ctx context.Context) bool {
+	logger := log.NewLogger().Sugar()
+	data, err := conn.Read()
 	if err != nil {
-		logger.Error("Failed to generate random key")
-		_, _ = responseWriter.Write([]byte("internal error"))
+		logger.Errorf("Failed to read login verification response: %v", err)
 		return false
 	}
-	cryptoManager := crypto.NewManager(&crypto.AesCBC{})
-	password, err := crypto.Base64Decode([]byte(user.Password))
+	response, err := user.VerifyLogin(user.VerifyLoginRequest{
+		Data: data, SessionKey: ctx.Value("sessionKey").([]byte), Username: ctx.Value("username").(string),
+	})
 	if err != nil {
-		logger.Error("Failed to decode password")
-		_, _ = responseWriter.Write([]byte("internal error"))
+		logger.Errorf("Failed to verify login: %v", err)
+		conn.Write([]byte("Failed to authorize"))
+		return false
 	}
 
-	encryptedKey, err := cryptoManager.Encrypt(randomKey, password)
-	if err != nil {
-		logger.Error("Failed to encrypt generated password")
+	if response.Ok != true {
+		logger.Error("Failed to verify login")
+		conn.Write([]byte("Failed to authorize"))
 		return false
 	}
-	user.SessionKey = hex.EncodeToString(randomKey)
-	err = dbManager.SaveUser(user)
-	if err != nil {
-		logger.Errorf("Failed to save user session key: %v", err)
-		_, err = responseWriter.Write([]byte("internal error"))
-		return false
-	}
-	response := hex.EncodeToString(encryptedKey)
-
-	_, err = responseWriter.Write([]byte("Login " + response))
-	return err == nil
+	conn.Write([]byte("Welcome"))
+	return true
 }
