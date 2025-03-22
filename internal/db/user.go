@@ -3,14 +3,19 @@ package db
 import (
 	"errors"
 	"gorm.io/gorm"
+	"time"
 )
 
 type User struct {
-	ID         uint   `gorm:"primaryKey" json:"id"`
-	Username   string `json:"username" gorm:"unique"`
-	Password   string `json:"password"`
-	SessionKey string `json:"session_key"`
-	Admin      bool   `json:"admin"`
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	Username      string    `json:"username" gorm:"unique"`
+	Password      string    `json:"password"`
+	SessionKey    string    `json:"session_key"`
+	Admin         bool      `json:"admin"`
+	LastLoginDate time.Time `json:"last_login_date"`
+	Online        bool      `json:"online" gorm:"default:false"`
+	CreatedAt     time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt     time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 func (m *Manager) CheckUserExists(username string) bool {
