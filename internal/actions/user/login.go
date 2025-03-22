@@ -49,14 +49,14 @@ func Login(req LoginRequest) (*LoginResponse, error) {
 		return nil, errors.New("internal error")
 	}
 	logger.Debugw("Generated random key", "key", randomKey)
-	cryptoManager := crypto.NewManager(&crypto.AesCBC{})
 	password, err := crypto.Base64Decode([]byte(user.Password))
 	if err != nil {
 		logger.Error("Failed to decode password")
 		return nil, errors.New("internal error")
 	}
+	cryptoManager := crypto.NewManager(&crypto.AesCBC{}, password)
 
-	encryptedKey, err := cryptoManager.Encrypt(randomKey, password)
+	encryptedKey, err := cryptoManager.Encrypt(randomKey)
 	if err != nil {
 		logger.Error("Failed to encrypt generated password")
 		return nil, errors.New("internal error")
@@ -68,8 +68,8 @@ func Login(req LoginRequest) (*LoginResponse, error) {
 }
 
 func VerifyLogin(request VerifyLoginRequest) (VerifyLoginResponse, error) {
-	cryptoManager := crypto.NewManager(&crypto.AesCBC{})
-	plaintext, err := cryptoManager.Decrypt(request.Data, crypto.Sha1HashData(request.SessionKey))
+	cryptoManager := crypto.NewManager(&crypto.AesCBC{}, crypto.Sha1HashData(request.SessionKey))
+	plaintext, err := cryptoManager.Decrypt(request.Data)
 	if err != nil {
 		return VerifyLoginResponse{Ok: false}, err
 	}

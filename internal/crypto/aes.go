@@ -59,9 +59,4 @@ func (ac AesCBC) Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
 		return nil, err
 	}
 	return plaintext, nil
-	//idx := bytes.Index(ciphertext, []byte("\000"))
-	//if idx == -1 {
-	//	return ciphertext, nil
-	//}
-	//return ciphertext[:idx], nil
 }
