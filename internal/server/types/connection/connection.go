@@ -16,7 +16,7 @@ type Conn struct {
 	conn net.Conn
 }
 
-func NewConn(conn net.Conn) *Conn {
+func New(conn net.Conn) *Conn {
 	return &Conn{conn: conn}
 }
 

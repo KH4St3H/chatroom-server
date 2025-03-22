@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/kh4st3h/chatroom-server/internal/crypto"
-	"github.com/kh4st3h/chatroom-server/internal/db"
+	"github.com/kh4st3h/chatroom-server/internal/actions/user"
 	"github.com/kh4st3h/chatroom-server/internal/log"
-	"io"
+	"github.com/kh4st3h/chatroom-server/internal/server/types/connection"
 	"regexp"
 )
 
@@ -22,29 +21,18 @@ func extractUsernamePassword(data []byte) (string, string, error) {
 
 }
 
-func HandleRegistration(responseWriter io.Writer, ctx context.Context) {
+func HandleRegistration(conn connection.Conn, ctx context.Context) {
 	logger := log.NewLogger().Sugar()
-	dbManager := db.GetManager()
 	data := ctx.Value("data").([]byte)
 	username, password, err := extractUsernamePassword(data)
 	if err != nil {
 		logger.Info("Failed to extract username and password from user input")
-		_, _ = responseWriter.Write([]byte("Failed to extract username and password"))
+		_, _ = conn.Write([]byte("Failed to extract username and password"))
 		return
 	}
-	exists := dbManager.CheckUserExists(username)
-	if exists {
-		logger.Infow("user already exists", "username", username)
-		_, _ = responseWriter.Write([]byte("user already exists"))
-		return
-	}
-	encodedPassword := crypto.Base64Encode(crypto.Sha1HashData([]byte(password)))
-	err = dbManager.CreateUser(username, string(encodedPassword))
+	err = user.Register(username, password)
 	if err != nil {
-		logger.Errorf("Failed to create user: %v", err)
-		_, _ = responseWriter.Write([]byte("Failed to create user"))
-		return
+		conn.Write([]byte(err.Error()))
 	}
-	logger.Infow("user created", "username", username)
-	_, _ = responseWriter.Write([]byte("Account created"))
+	_, _ = conn.Write([]byte("Account created"))
 }

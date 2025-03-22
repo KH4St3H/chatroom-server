@@ -35,10 +35,10 @@ func (s *Server) HandleConnection(ctx context.Context, conn net.Conn) {
 	}
 	logger.Debugw("first packet received", "packet", string(packet))
 	ctx = context.WithValue(ctx, "data", packet)
-	newConn := connection.NewConn(conn)
+	newConn := connection.New(conn)
 
 	if bytes.HasPrefix(packet, []byte(constants.REGISTRATION_MSG)) {
-		handler.HandleRegistration(newConn, ctx)
+		handler.HandleRegistration(*newConn, ctx)
 	} else if bytes.HasPrefix(packet, []byte(constants.LOGIN_MSG)) {
 		success := handler.HandleLogin(*newConn, ctx)
 		if !success {
