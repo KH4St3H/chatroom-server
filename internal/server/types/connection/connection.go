@@ -1,4 +1,4 @@
-package types
+package connection
 
 import (
 	"github.com/kh4st3h/chatroom-server/internal/log"

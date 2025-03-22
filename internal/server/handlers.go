@@ -7,7 +7,7 @@ import (
 	"github.com/kh4st3h/chatroom-server/internal/constants"
 	"github.com/kh4st3h/chatroom-server/internal/log"
 	"github.com/kh4st3h/chatroom-server/internal/server/handler"
-	"github.com/kh4st3h/chatroom-server/internal/server/types"
+	"github.com/kh4st3h/chatroom-server/internal/server/types/connection"
 	"go.uber.org/zap"
 	"net"
 	"time"
@@ -35,7 +35,7 @@ func (s *Server) HandleConnection(ctx context.Context, conn net.Conn) {
 	}
 	logger.Debugw("first packet received", "packet", string(packet))
 	ctx = context.WithValue(ctx, "data", packet)
-	newConn := types.NewConn(conn)
+	newConn := connection.NewConn(conn)
 
 	if bytes.HasPrefix(packet, []byte(constants.REGISTRATION_MSG)) {
 		handler.HandleRegistration(newConn, ctx)

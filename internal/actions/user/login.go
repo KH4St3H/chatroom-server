@@ -59,6 +59,7 @@ func Login(req LoginRequest) (*LoginResponse, error) {
 	encryptedKey, err := cryptoManager.Encrypt(randomKey, password)
 	if err != nil {
 		logger.Error("Failed to encrypt generated password")
+		return nil, errors.New("internal error")
 	}
 
 	response := hex.EncodeToString(encryptedKey)

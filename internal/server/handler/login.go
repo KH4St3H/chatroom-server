@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"github.com/kh4st3h/chatroom-server/internal/actions/user"
 	"github.com/kh4st3h/chatroom-server/internal/log"
-	"github.com/kh4st3h/chatroom-server/internal/server/types"
+	"github.com/kh4st3h/chatroom-server/internal/server/types/connection"
 	"regexp"
 )
 
 func extractUsername(data []byte) (string, error) {
 	data = bytes.TrimSpace(data)
-	r := regexp.MustCompile(`^Login ([a-zA-Z][\w]+)$`)
+	r := regexp.MustCompile(`^Login ([a-zA-Z]\w+)$`)
 	if !r.Match(data) {
 		return "", errors.New("invalid username or password")
 	}
@@ -22,7 +22,7 @@ func extractUsername(data []byte) (string, error) {
 
 }
 
-func HandleLogin(conn types.Conn, ctx context.Context) bool {
+func HandleLogin(conn connection.Conn, ctx context.Context) bool {
 	logger := log.NewLogger().Sugar()
 	data := ctx.Value("data").([]byte)
 
@@ -39,10 +39,10 @@ func HandleLogin(conn types.Conn, ctx context.Context) bool {
 		if err != nil {
 			return false
 		}
+		return false
 	}
 	_, err = conn.Write([]byte(fmt.Sprintf("Key %s", loginResponse.SessionVerifyToken)))
 	if err != nil {
-		logger.Error("Failed to write session token")
 		return false
 	}
 	newCtx := context.WithValue(ctx, "username", username)
@@ -51,7 +51,7 @@ func HandleLogin(conn types.Conn, ctx context.Context) bool {
 	return VerifyLogin(conn, newCtx)
 }
 
-func VerifyLogin(conn types.Conn, ctx context.Context) bool {
+func VerifyLogin(conn connection.Conn, ctx context.Context) bool {
 	logger := log.NewLogger().Sugar()
 	data, err := conn.Read()
 	if err != nil {
