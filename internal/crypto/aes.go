@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -21,6 +20,10 @@ type AesCBC struct {
 }
 
 func (ac AesCBC) Encrypt(data []byte, key []byte) ([]byte, error) {
+	data, err := pkcs7pad(data, aes.BlockSize)
+	if err != nil {
+		return nil, err
+	}
 	if len(data)%aes.BlockSize != 0 {
 		cp := make([]byte, len(data)+(aes.BlockSize-len(data)%aes.BlockSize))
 		copy(cp, data)
@@ -51,9 +54,14 @@ func (ac AesCBC) Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
 
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(ciphertext, ciphertext)
-	idx := bytes.Index(ciphertext, []byte("\000"))
-	if idx == -1 {
-		return ciphertext, nil
+	plaintext, err := pkcs7strip(ciphertext, aes.BlockSize)
+	if err != nil {
+		return nil, err
 	}
-	return ciphertext[:idx], nil
+	return plaintext, nil
+	//idx := bytes.Index(ciphertext, []byte("\000"))
+	//if idx == -1 {
+	//	return ciphertext, nil
+	//}
+	//return ciphertext[:idx], nil
 }
