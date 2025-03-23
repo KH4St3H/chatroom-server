@@ -39,9 +39,16 @@ func (s *Server) Join(conn *connection.Conn) {
 	}
 }
 
-func (s *Server) Leave(conn *connection.Conn) {
+func (s *Server) Leave(username string) {
+	s.Broadcast(username, fmt.Sprintf("%s left the chat room.", username))
+	s.Connections[username].GoOffline()
+	delete(s.Connections, username)
+}
+
+func (s *Server) ConnectionFail(conn *connection.Conn) {
 	s.Connections[conn.GetUsername()] = conn
-	s.Broadcast(conn.GetUsername(), fmt.Sprintf("%s left the chat room.", conn.GetUsername()))
+	s.Broadcast(conn.GetUsername(), fmt.Sprintf("%s disconnected from the server.", conn.GetUsername()))
+	conn.GoOffline()
 	delete(s.Connections, conn.GetUsername())
 }
 

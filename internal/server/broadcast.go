@@ -18,7 +18,6 @@ func (s *Server) BroadcastTo(username string, msg string) {
 	err := conn.EncryptedWrite([]byte(msg))
 	if err != nil {
 		logger.Error("failed to send data to user")
-		conn.GoOffline()
-		s.Leave(conn)
+		s.ConnectionFail(conn)
 	}
 }

@@ -19,10 +19,11 @@ type Conn struct {
 	conn          net.Conn
 	username      string
 	cryptoManager crypto.Manager
+	ErrorChan     chan error
 }
 
 func New(conn net.Conn) *Conn {
-	return &Conn{conn: conn}
+	return &Conn{conn: conn, ErrorChan: make(chan error)}
 }
 
 func (c *Conn) Write(data []byte) (int, error) {
@@ -43,17 +44,19 @@ func (c *Conn) Read() ([]byte, error) {
 	return packet, err
 }
 
-func (c *Conn) ReadAndDecrypt() (string, error) {
+func (c *Conn) ReadAndDecrypt(dataChan chan string) {
 	packet, err := c.Read()
 
 	if err != nil {
-		return "", err
+		c.ErrorChan <- err
+		return
 	}
 	decrypted, err := c.DecryptMessage(packet)
 	if err != nil {
-		return "", errors.Join(errors.New("failed to decrypt user data"), err)
+		c.ErrorChan <- errors.Join(errors.New("failed to decrypt user data"), err)
+		return
 	}
-	return string(decrypted), nil
+	dataChan <- string(decrypted)
 }
 
 func (c *Conn) EncryptedWrite(msg []byte) error {
@@ -92,6 +95,7 @@ func (c *Conn) Authenticate(username string, sessionKey []byte) {
 }
 
 func (c *Conn) GoOffline() {
+	c.ErrorChan <- nil
 	DB := db.GetManager()
 	event := db.NewEvent(c.GetUsername(), "disconnect", "")
 	err := DB.SaveEvent(event)

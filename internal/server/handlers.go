@@ -20,20 +20,22 @@ func init() {
 }
 
 func (s *Server) HandleUserMessages(conn *connection.Conn) {
+	dataChan := make(chan string)
 	for {
-		data, err := conn.ReadAndDecrypt()
-		if err != nil {
-			conn.GoOffline()
-			s.Leave(conn)
-
-			logger.Errorf("Failed to read data from user: %v", err)
-			return
-		}
-		if data == "" {
+		go conn.ReadAndDecrypt(dataChan)
+		select {
+		case data := <-dataChan:
+			userMessage := request.New(conn.GetUsername(), data)
+			s.UserRequests <- userMessage
 			continue
+		case err := <-conn.ErrorChan:
+			if err != nil {
+				s.ConnectionFail(conn)
+				logger.Errorf("Failed to read data from user: %v", err)
+			}
+			return
+
 		}
-		userMessage := request.New(conn.GetUsername(), data)
-		s.UserRequests <- userMessage
 	}
 }
 
@@ -107,6 +109,8 @@ func (s *Server) HandleRequests() {
 					logger.Errorf("Error sending private message: %v", err)
 				}
 			}()
+		case constants.BYE_MESSAGE_TYPE:
+			s.Leave(req.Username)
 		default:
 			logger.Warnw("Unknown request", "request", req.Message)
 			continue
