@@ -8,7 +8,6 @@ import (
 	"github.com/kh4st3h/chatroom-server/internal/server/types/connection"
 	"github.com/kh4st3h/chatroom-server/internal/server/types/request"
 	"net"
-	"time"
 )
 
 type Server struct {
@@ -25,11 +24,7 @@ func NewServer(cfg *config.Config) *Server {
 
 func (s *Server) Join(conn *connection.Conn) {
 	s.Connections[conn.GetUsername()] = conn
-	s.Broadcast(request.AuthenticatedUserRequest{
-		Username: conn.GetUsername(),
-		Message:  fmt.Sprintf("%s join the chat room.", conn.GetUsername()),
-		Time:     time.Now(),
-	})
+	s.Broadcast(conn.GetUsername(), fmt.Sprintf("%s join the chat room.", conn.GetUsername()))
 }
 
 func (s *Server) Leave(conn *connection.Conn) {

@@ -86,15 +86,27 @@ func (s *Server) GetUserList() []string {
 func (s *Server) HandleRequests() {
 	for {
 		req := <-s.UserRequests
+		logger.Infow("Got a new message", "username", req.Username, "message", req.Message)
+
 		switch req.Type {
 		case constants.FETCH_ATTENDEES_TYPE:
-			server.FetchAttendees(req.Username, s.GetUserList(), s)
+			go server.FetchAttendees(req.Username, s.GetUserList(), s)
 		case constants.PUBLIC_MESSAGE_TYPE:
-			err := server.SendPublicMessage(req, s)
-			if err != nil {
-				logger.Errorf("Error sending public message: %v", err)
-			}
+			go func() {
+				err := server.SendPublicMessage(req.Username, req.Message, s)
+				if err != nil {
+					logger.Errorf("Error sending public message: %v", err)
+				}
+			}()
+		case constants.PRIVATE_MESSAGE_TYPE:
+			go func() {
+				err := server.SendPrivateMessage(req.Username, req.Message, s)
+				if err != nil {
+					logger.Errorf("Error sending private message: %v", err)
+				}
+			}()
 		default:
+			logger.Warnw("Unknown request", "request", req.Message)
 			continue
 
 		}
