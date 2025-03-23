@@ -1,15 +1,11 @@
 package server
 
-import (
-	"github.com/kh4st3h/chatroom-server/internal/server/types/request"
-)
-
-func (s *Server) Broadcast(u request.AuthenticatedUserRequest) {
+func (s *Server) Broadcast(sender string, message string) {
 	for username, _ := range s.Connections {
-		if username == u.Username {
+		if username == sender {
 			continue
 		}
-		s.BroadcastTo(username, u.Message)
+		s.BroadcastTo(username, message)
 	}
 }
 

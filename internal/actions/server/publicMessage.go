@@ -3,14 +3,13 @@ package server
 import (
 	"errors"
 	"fmt"
-	"github.com/kh4st3h/chatroom-server/internal/server/types/request"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
 type Actions interface {
-	Broadcast(u request.AuthenticatedUserRequest)
+	Broadcast(sender string, message string)
 	BroadcastTo(username string, msg string)
 }
 
@@ -28,13 +27,12 @@ func extractBody(msg string) (string, error) {
 	return strings.Join(lines[1:], "\n")[:length+1], nil
 }
 
-func SendPublicMessage(req *request.AuthenticatedUserRequest, actions Actions) error {
-	body, err := extractBody(req.Message)
+func SendPublicMessage(username string, message string, actions Actions) error {
+	body, err := extractBody(message)
 	if err != nil {
 		return err
 	}
-	msg := fmt.Sprintf("Public message from %s, length=%d\n\r%s", req.Username, len(body), body)
-	req.Message = msg
-	actions.Broadcast(*req)
+	msg := fmt.Sprintf("Public message from %s, length=%d\n\r%s", username, len(body), body)
+	actions.Broadcast(username, msg)
 	return nil
 }
