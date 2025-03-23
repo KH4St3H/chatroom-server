@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/kh4st3h/chatroom-server/internal/config"
+	"github.com/kh4st3h/chatroom-server/internal/db"
 	"github.com/kh4st3h/chatroom-server/internal/log"
 	"github.com/kh4st3h/chatroom-server/internal/server/types/connection"
 	"github.com/kh4st3h/chatroom-server/internal/server/types/request"
@@ -25,9 +26,22 @@ func NewServer(cfg *config.Config) *Server {
 func (s *Server) Join(conn *connection.Conn) {
 	s.Connections[conn.GetUsername()] = conn
 	s.Broadcast(conn.GetUsername(), fmt.Sprintf("%s join the chat room.", conn.GetUsername()))
+	event := db.NewEvent(conn.GetUsername(), "connect", "")
+	err := db.GetManager().SaveEvent(event)
+
+	if err != nil {
+		logger.Errorf("Failed to save event: %s", err)
+	}
+
+	err = db.UpdateUserLoginDate(conn.GetUsername())
+	if err != nil {
+		logger.Errorf("Failed to update online status: %s", err)
+	}
 }
 
 func (s *Server) Leave(conn *connection.Conn) {
+	s.Connections[conn.GetUsername()] = conn
+	s.Broadcast(conn.GetUsername(), fmt.Sprintf("%s left the chat room.", conn.GetUsername()))
 	delete(s.Connections, conn.GetUsername())
 }
 

@@ -7,15 +7,27 @@ import (
 )
 
 type User struct {
-	ID            uint      `gorm:"primaryKey" json:"id"`
+	gorm.Model
 	Username      string    `json:"username" gorm:"unique"`
 	Password      string    `json:"password"`
 	SessionKey    string    `json:"session_key"`
 	Admin         bool      `json:"admin"`
 	LastLoginDate time.Time `json:"last_login_date"`
-	Online        bool      `json:"online" gorm:"default:false"`
-	CreatedAt     time.Time `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt     time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+}
+
+func (u User) UpdateLoginDate() {
+	u.LastLoginDate = time.Now()
+	manager.Save(u)
+}
+
+func UpdateUserLoginDate(username string) error {
+	u, err := manager.GetUserByUsername(username)
+	if err == nil {
+		return err
+	}
+	u.LastLoginDate = time.Now()
+	manager.Save(u)
+	return nil
 }
 
 func (m *Manager) CheckUserExists(username string) bool {

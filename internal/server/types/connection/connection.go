@@ -3,6 +3,7 @@ package connection
 import (
 	"errors"
 	"github.com/kh4st3h/chatroom-server/internal/crypto"
+	"github.com/kh4st3h/chatroom-server/internal/db"
 	"github.com/kh4st3h/chatroom-server/internal/log"
 	"go.uber.org/zap"
 	"net"
@@ -80,10 +81,23 @@ func (c *Conn) EncryptMessage(message []byte) ([]byte, error) {
 func (c *Conn) Authenticate(username string, sessionKey []byte) {
 	c.username = username
 	c.cryptoManager = *crypto.NewManager(crypto.AesCBC{}, crypto.Sha1HashData(sessionKey))
+	DB := db.GetManager()
+	user, err := DB.GetUserByUsername(username)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	user.SessionKey = string(crypto.Base64Encode(crypto.Sha1HashData(sessionKey)))
+	DB.Save(user)
 }
 
 func (c *Conn) GoOffline() {
-
+	DB := db.GetManager()
+	event := db.NewEvent(c.GetUsername(), "disconnect", "")
+	err := DB.SaveEvent(event)
+	if err != nil {
+		logger.Errorf("Failed to save event: %s", err)
+	}
 }
 
 func (c *Conn) GetUsername() string {

@@ -24,6 +24,8 @@ func (s *Server) HandleUserMessages(conn *connection.Conn) {
 		data, err := conn.ReadAndDecrypt()
 		if err != nil {
 			conn.GoOffline()
+			s.Leave(conn)
+
 			logger.Errorf("Failed to read data from user: %v", err)
 			return
 		}

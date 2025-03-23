@@ -30,8 +30,11 @@ func NewManager(dsn string) (*Manager, error) {
 func (m *Manager) Migrate() error {
 	err := m.Transaction(func(tx *gorm.DB) error {
 		err := tx.AutoMigrate(&User{})
+		if err != nil {
+			return err
+		}
+		err = tx.AutoMigrate(&Event{})
 		return err
-
 	})
 	return err
 }
