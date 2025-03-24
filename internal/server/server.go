@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/kh4st3h/chatroom-server/internal/config"
-	"github.com/kh4st3h/chatroom-server/internal/db"
 	"github.com/kh4st3h/chatroom-server/internal/log"
 	"github.com/kh4st3h/chatroom-server/internal/server/types/connection"
 	"github.com/kh4st3h/chatroom-server/internal/server/types/request"
+	"go.uber.org/zap"
 	"net"
 )
 
@@ -15,6 +15,12 @@ type Server struct {
 	Cfg          *config.Config
 	UserRequests chan *request.AuthenticatedUserRequest
 	Connections  map[string]*connection.Conn
+}
+
+var logger *zap.SugaredLogger
+
+func init() {
+	logger = log.NewLogger().Sugar()
 }
 
 func NewServer(cfg *config.Config) *Server {
@@ -25,35 +31,24 @@ func NewServer(cfg *config.Config) *Server {
 
 func (s *Server) Join(conn *connection.Conn) {
 	s.Connections[conn.GetUsername()] = conn
+	conn.GoOnline()
 	s.Broadcast(conn.GetUsername(), fmt.Sprintf("%s join the chat room.", conn.GetUsername()))
-	event := db.NewEvent(conn.GetUsername(), "connect", "")
-	err := db.GetManager().SaveEvent(event)
 
-	if err != nil {
-		logger.Errorf("Failed to save event: %s", err)
-	}
-
-	err = db.UpdateUserLoginDate(conn.GetUsername())
-	if err != nil {
-		logger.Errorf("Failed to update online status: %s", err)
-	}
 }
 
 func (s *Server) Leave(username string) {
-	s.Broadcast(username, fmt.Sprintf("%s left the chat room.", username))
-	s.Connections[username].GoOffline()
 	delete(s.Connections, username)
+	s.Connections[username].GoOffline()
+	s.Broadcast(username, fmt.Sprintf("%s left the chat room.", username))
 }
 
 func (s *Server) ConnectionFail(conn *connection.Conn) {
-	s.Connections[conn.GetUsername()] = conn
-	s.Broadcast(conn.GetUsername(), fmt.Sprintf("%s disconnected from the server.", conn.GetUsername()))
-	conn.GoOffline()
 	delete(s.Connections, conn.GetUsername())
+	conn.GoOffline()
+	s.Broadcast(conn.GetUsername(), fmt.Sprintf("%s disconnected from the server.", conn.GetUsername()))
 }
 
 func (s *Server) Run() error {
-	logger := log.NewLogger().Sugar()
 	fullListenAddr := fmt.Sprintf("%s:%d", s.Cfg.ListenAddr, s.Cfg.ListenPort)
 	logger.Infow("Starting server", "listenAddr", fullListenAddr)
 	l, err := net.Listen("tcp", fullListenAddr)

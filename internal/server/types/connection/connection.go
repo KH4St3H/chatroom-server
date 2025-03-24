@@ -94,6 +94,19 @@ func (c *Conn) Authenticate(username string, sessionKey []byte) {
 	DB.Save(user)
 }
 
+func (c *Conn) GoOnline() {
+	DB := db.GetManager()
+	event := db.NewEvent(c.GetUsername(), "connect", "")
+	err := DB.SaveEvent(event)
+	if err != nil {
+		logger.Errorf("Failed to save event: %s", err)
+	}
+	err = db.UpdateUserLoginDate(c.GetUsername())
+	if err != nil {
+		logger.Errorf("Failed to update online status: %s", err)
+	}
+}
+
 func (c *Conn) GoOffline() {
 	c.ErrorChan <- nil
 	DB := db.GetManager()

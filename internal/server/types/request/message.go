@@ -21,6 +21,7 @@ func ClassifyType(message string) int {
 		return constants.PUBLIC_MESSAGE_TYPE
 	}
 	if strings.HasPrefix(message, "Private message") {
+		return constants.PRIVATE_MESSAGE_TYPE
 	}
 	if strings.HasPrefix(message, "Bye.") {
 		return constants.BYE_MESSAGE_TYPE
